@@ -259,6 +259,13 @@
                                 <goal>jar-no-fork</goal>
                             </goals>
                         </execution>
+						
+						<execution>
+							<goals>
+								<goal>jar-no-fork</goal>
+							</goals>
+						</execution>
+						
                     </executions>
                 </plugin>
                 <plugin>
