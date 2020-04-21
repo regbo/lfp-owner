@@ -118,7 +118,7 @@ class PropertiesManager implements Reloadable, Accessible, Mutable {
 		{
 			for (Class<?> inter : LFPUtils.getInterfaces(clazz))
 				this.uris.addAll(toURIs(inter.getAnnotation(Sources.class), urlFactory));
-			java.util.LinkedHashSet<String> uriSet = new java.util.LinkedHashSet<>(this.uris);
+			java.util.LinkedHashSet<String> uriSet = new java.util.LinkedHashSet<String>(this.uris);
 			this.uris.clear();
 			this.uris.addAll(uriSet);
 		}
