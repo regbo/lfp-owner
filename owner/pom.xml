@@ -11,6 +11,7 @@
 	</properties>
 	<groupId>org.aeonbits.owner</groupId>
 	<version>${owner.parent.version}</version>
+
 	<name>OWNER :: Core</name>
 	<artifactId>owner</artifactId>
 	<description>Get rid of the boilerplate code in Java properties based configuration.</description>
@@ -112,4 +113,3 @@
 		</plugins>
 	</build>
 </project>
-
