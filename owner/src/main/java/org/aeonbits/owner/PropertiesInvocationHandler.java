@@ -73,7 +73,8 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
                 synchronized (defaultMethodCache) {
                     entry = defaultMethodCache.get(key);
                     if (entry == null) {
-                            entry=new AbstractMap.SimpleEntry<Method, Void>(lookupDefaultMethod(proxy,invokedMethod),null);
+                        entry=new AbstractMap.SimpleEntry<Method, Void>(lookupDefaultMethod(proxy,invokedMethod),null);
+                        defaultMethodCache.put(key, entry);
                     }
                 }
             if(entry.getKey()!=null)
