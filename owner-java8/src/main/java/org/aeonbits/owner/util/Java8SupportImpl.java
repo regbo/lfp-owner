@@ -66,7 +66,7 @@ class Java8SupportImpl implements Reflection.Java8Support {
 
     @Override
     public Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
-        Invoker invoker = defaultMethodLookupCache.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method)).get;
+        Invoker invoker = defaultMethodLookupCache.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method)).get();
         return invoker.invoke(proxy, args);
     }
 
