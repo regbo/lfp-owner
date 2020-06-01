@@ -95,26 +95,26 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
         Class<?>[] invokedMethodPTs=invokedMethod.getParameterTypes();
         for(Class<?> classType:classes) {
             Method[] methods = classType.getMethods();
-            for (Method m : methods) {
-                if (!isDefault(m))
+            for (Method method : methods) {
+                if (!isDefault(method))
                     continue;
-                if (!invokedMethod.getName().equals(m.getName()))
+                if (!invokedMethod.getName().equals(method.getName()))
                     continue;
-                if(!invokedMethod.getReturnType().isAssignableFrom(m.getReturnType()))
+                if(!invokedMethod.getReturnType().isAssignableFrom(method.getReturnType()))
                     continue;
-                Class<?>[] marr=invokedMethod.getParameterTypes();
-                if(invokedMethodPTs.length!=marr.length)
+                Class<?>[] methodPTs=method.getParameterTypes();
+                if(invokedMethodPTs.length!=methodPTs.length)
                     continue;
                 boolean ptMatch=true;
                 for(int i=0;ptMatch&&i<invokedMethodPTs.length;i++){
                     Class<?> invokedMethodPT = invokedMethodPTs[i];
-                    Class<?> methodPT = marr[i];
+                    Class<?> methodPT = methodPTs[i];
                     if(!invokedMethodPT.isAssignableFrom(methodPT))
                         ptMatch=false;
                 }
                 if(!ptMatch)
                     continue;
-                return m;
+                return method;
             }
         }
         return null;
