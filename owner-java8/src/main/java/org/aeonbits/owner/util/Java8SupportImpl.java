@@ -29,7 +29,7 @@ import java.util.concurrent.Callable;
  */
 class Java8SupportImpl implements Reflection.Java8Support {
     private boolean isJava8;
-    private LoadingCache<Map.Entry<Class<?>, Method>, Optional<Invoker>> defaultMethodLookupCache = Caffeine.newBuilder()
+    private LoadingCache<Map.Entry<Class<?>, Method>, Optional<MethodHandle>> defaultMethodLookupCache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofSeconds(10)).expireAfterAccess(Duration.ofSeconds(1)).build(ent -> {
                 Class<?> proxyClassType = ent.getKey();
                 Method proxyMethod = ent.getValue();
@@ -46,10 +46,7 @@ class Java8SupportImpl implements Reflection.Java8Support {
                     methodHandle = MethodHandles.lookup()
                             .findSpecial(declaringClass, defaultMethodOp.get().getName(), rt, declaringClass);
                 }
-                Invoker invoker = (proxy, args) -> {
-                    return methodHandle.bindTo(proxy).invokeWithArguments(args);
-                };
-                return Optional.of(invoker);
+                return Optional.of(methodHandle);
 
             });
 
@@ -76,18 +73,19 @@ class Java8SupportImpl implements Reflection.Java8Support {
             return null;
         if (!method.isDefault() && !Modifier.isAbstract(method.getModifiers()))
             return null;
-        Optional<Invoker> invokerOp = defaultMethodLookupCache.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method));
-        if (!invokerOp.isPresent())
+        Optional<MethodHandle> methodHandleOp = defaultMethodLookupCache.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method));
+        if (!methodHandleOp.isPresent())
             return null;
-        return () -> {
+        Callable<Object> result= () -> {
             try {
-                return invokerOp.get().invoke(proxy, args);
+                return methodHandleOp.get().bindTo(proxy).invokeWithArguments(args);
             } catch (Throwable t) {
                 if (t instanceof Exception)
                     throw (Exception) t;
                 throw new Exception(t);
             }
         };
+        return result;
     }
 
 
@@ -128,12 +126,6 @@ class Java8SupportImpl implements Reflection.Java8Support {
         return Optional.empty();
     }
 
-
-    private static interface Invoker {
-
-        public Object invoke(Object proxy, Object[] args) throws Throwable;
-
-    }
 
     private static class Lookup {
         private static final Constructor<MethodHandles.Lookup> LOOKUP_CONSTRUCTOR = lookupConstructor();
