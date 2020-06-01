@@ -48,7 +48,8 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 
 	private static final long serialVersionUID = 5432212884255718342L;
 	private transient List<DelegateMethodHandle> delegates;
-	private final Object jmxSupport;
+    private final Map<Map.Entry<Class<?>, Method>, Map.Entry<Method, Void>> defaultMethodCache = new HashMap<Map.Entry<Class<?>, Method>, Map.Entry<Method, Void>>();
+    private final Object jmxSupport;
 	private final StrSubstitutor substitutor;
 	final PropertiesManager propertiesManager;
 
@@ -65,6 +66,20 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 		if (isDefault(invokedMethod))
 			return invokeDefaultMethod(proxy, invokedMethod, args);
 
+        if(proxy!=null) {
+            AbstractMap.SimpleEntry<Class<?>, Method> key = new AbstractMap.SimpleEntry<Class<?>, Method>(proxy.getClass(), invokedMethod);
+            Map.Entry<Method, Void> entry = defaultMethodCache.get(key);
+            if (entry == null)
+                synchronized (defaultMethodCache) {
+                    entry = defaultMethodCache.get(key);
+                    if (entry == null) {
+                            entry=new AbstractMap.SimpleEntry<Method, Void>(lookupDefaultMethod(proxy,invokedMethod),null);
+                    }
+                }
+            if(entry.getKey()!=null)
+                return invokeDefaultMethod(proxy, entry.getKey(), args);
+        }
+
 		DelegateMethodHandle delegate = getDelegateMethod(invokedMethod);
 		if (delegate != null)
 			return delegate.invoke(args);
@@ -72,7 +87,39 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 		return resolveProperty(invokedMethod, args);
 	}
 
-	private DelegateMethodHandle getDelegateMethod(Method invokedMethod) {
+    private Method lookupDefaultMethod(Object proxy, Method invokedMethod) {
+        Set<Class<?>> classes = new LinkedHashSet<Class<?>>();
+        classes.add(proxy.getClass());
+        classes.addAll(Arrays.asList(LFPUtils.getInterfaces(proxy.getClass())));
+        Class<?>[] invokedMethodPTs=invokedMethod.getParameterTypes();
+        for(Class<?> classType:classes) {
+            Method[] methods = classType.getMethods();
+            for (Method m : methods) {
+                if (!isDefault(m))
+                    continue;
+                if (!invokedMethod.getName().equals(m.getName()))
+                    continue;
+                if(!invokedMethod.getReturnType().isAssignableFrom(m.getReturnType()))
+                    continue;
+                Class<?>[] marr=invokedMethod.getParameterTypes();
+                if(invokedMethodPTs.length!=marr.length)
+                    continue;
+                boolean ptMatch=true;
+                for(int i=0;ptMatch&&i<invokedMethodPTs.length;i++){
+                    Class<?> invokedMethodPT = invokedMethodPTs[i];
+                    Class<?> methodPT = marr[i];
+                    if(!invokedMethodPT.isAssignableFrom(methodPT))
+                        ptMatch=false;
+                }
+                if(!ptMatch)
+                    continue;
+                return m;
+            }
+        }
+        return null;
+    }
+
+    private DelegateMethodHandle getDelegateMethod(Method invokedMethod) {
 		for (DelegateMethodHandle delegate : delegates)
 			if (delegate.matches(invokedMethod))
 				return delegate;
@@ -82,7 +129,7 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 	private Object resolveProperty(Method method, Object... args) {
 		String key = expandKey(method, args);
 		String value = propertiesManager.getProperty(key);
-		
+
 		// TODO: this if should go away! See #84 and #86
 		if (value == null && !isFeatureDisabled(method, VARIABLE_EXPANSION)) {
 			String unexpandedKey = key(method);
