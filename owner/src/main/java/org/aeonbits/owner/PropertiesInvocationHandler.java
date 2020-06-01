@@ -192,29 +192,18 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 		return substitutor.replace(value);
 	}
 
-	private List<DelegateMethodHandle> findDelegates(Object... targets) {
-		List<DelegateMethodHandle> result = new LinkedList<DelegateMethodHandle>();
-        Set<Method> uniqueTracker = new HashSet<Method>();
+    private List<DelegateMethodHandle> findDelegates(Object... targets) {
+        List<DelegateMethodHandle> result = new LinkedList<DelegateMethodHandle>();
         for (Object target : targets) {
             if (target == null)
                 continue;
-            Set<Class<?>> targetClassTypes = new LinkedHashSet<Class<?>>();
-            targetClassTypes.add(target.getClass());
-            for (Class<?> ct : LFPUtils.getInterfaces(target.getClass())) {
-                targetClassTypes.add(ct);
-            }
-            for (Class<?> ct : targetClassTypes) {
-                Method[] methods = ct.getMethods();
-                for (Method m : methods) {
-                    if (!uniqueTracker.add(m))
-                        continue;
-                    if (m.getAnnotation(Delegate.class) != null)
-                        result.add(new DelegateMethodHandle(target, m));
-                }
-            }
+            Method[] methods = target.getClass().getMethods();
+            for (Method m : methods)
+                if (m.getAnnotation(Delegate.class) != null)
+                    result.add(new DelegateMethodHandle(target, m));
         }
-		return result;
-	}
+        return result;
+    }
 
 	public <T extends Config> void setProxy(T proxy) {
 		propertiesManager.setProxy(proxy);
