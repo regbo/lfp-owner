@@ -28,7 +28,7 @@ import java.util.concurrent.Callable;
  */
 class Java8SupportImpl implements Reflection.Java8Support {
     private boolean isJava8;
-    private LoadingCache<Map.Entry<Class<?>, Optional<Method>>, Optional<Invoker>> defaultMethodLookupCache = Caffeine.newBuilder()
+    private LoadingCache<Map.Entry<Class<?>, Method>, Optional<Invoker>> defaultMethodLookupCache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofSeconds(10)).expireAfterAccess(Duration.ofSeconds(1)).build(ent -> {
                 Class<?> proxyClassType = ent.getKey();
                 Method proxyMethod = ent.getValue();
