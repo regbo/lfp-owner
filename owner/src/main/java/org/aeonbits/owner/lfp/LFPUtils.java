@@ -20,10 +20,12 @@ public class LFPUtils {
     }
 
 
-    public static Method lookupDefaultMethod(Object proxy, Method invokedMethod) {
+    public static Method lookupDefaultMethod(Class<?> proxyClassType, Method invokedMethod) {
+        if(proxyClassType==null||invokedMethod==null)
+            return null;
         Set<Class<?>> classes = new LinkedHashSet<Class<?>>();
-        classes.add(proxy.getClass());
-        classes.addAll(Arrays.asList(LFPUtils.getInterfaces(proxy.getClass())));
+        classes.add(proxyClassType);
+        classes.addAll(Arrays.asList(LFPUtils.getInterfaces(proxyClassType)));
         Class<?>[] invokedMethodPTs = invokedMethod.getParameterTypes();
         for (Class<?> classType : classes) {
             Method[] methods = classType.getMethods();

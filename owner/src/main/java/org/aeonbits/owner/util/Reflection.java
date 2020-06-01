@@ -39,7 +39,7 @@ public final class Reflection {
         Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) ;
     }
 
-    public static final Java8Support JAVA_8_SUPPORT = getJava8Support();
+    private static final Java8Support JAVA_8_SUPPORT = getJava8Support();
 
     private static Java8Support getJava8Support() {
         try {
@@ -72,6 +72,10 @@ public final class Reflection {
 
     public static Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
         return JAVA_8_SUPPORT.invokeDefaultMethod(proxy, method, args);
+    }
+
+    public static Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) {
+        return JAVA_8_SUPPORT.getDefaultMethodInvoker(proxy, method, args);
     }
 
 }

@@ -14,12 +14,22 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
+
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import org.aeonbits.owner.lfp.LFPUtils;
 
 /**
  * @author Luigi R. Viggiano
  */
 class Java8SupportImpl implements Reflection.Java8Support {
+    private LoadingCache<Map.Entry<Class<?>, Optional<Method>>, Method> DEFAULT_METHOD_LOOKUP_CACHE = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofSeconds(10)).expireAfterAccess(Duration.ofSeconds(1)).build(ent ->Optional.of(LFPUtils.lookupDefaultMethod(ent.getKey(), ent.getValue())));
     private boolean isJava8;
 
     Java8SupportImpl() {
@@ -53,18 +63,22 @@ class Java8SupportImpl implements Reflection.Java8Support {
 
     @Override
     public Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) {
-        if (method.isDefault())
-            return () -> {
-                try {
-                    return invokeDefaultMethod(proxy, method, args);
-                } catch (Throwable throwable) {
-                    if (throwable instanceof Exception)
-                        throw (Exception) throwable;
-                    throw new Exception(throwable);
-                }
-            };
-
-        return null;
+        if (!method.isDefault()) {
+            Optional<Method> methodOp = DEFAULT_METHOD_LOOKUP_CACHE.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method));
+            if (!methodOp.isPresent())
+                return null;
+            method = methodOp.get();
+        }
+        final Method methodF = method;
+        return () -> {
+            try {
+                return invokeDefaultMethod(proxy, methodF, args);
+            } catch (Throwable throwable) {
+                if (throwable instanceof Exception)
+                    throw (Exception) throwable;
+                throw new Exception(throwable);
+            }
+        };
     }
 
     private static class Lookup {
