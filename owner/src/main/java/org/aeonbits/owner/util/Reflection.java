@@ -9,6 +9,7 @@
 package org.aeonbits.owner.util;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
 
 /**
  * @author Luigi R. Viggiano
@@ -34,9 +35,11 @@ public final class Reflection {
         boolean isDefault(Method method);
 
         Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable;
+
+        Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) ;
     }
 
-    private static final Java8Support JAVA_8_SUPPORT = getJava8Support();
+    public static final Java8Support JAVA_8_SUPPORT = getJava8Support();
 
     private static Java8Support getJava8Support() {
         try {
@@ -53,6 +56,10 @@ public final class Reflection {
             }
 
             public Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
+                return null;
+            }
+
+            public Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) {
                 return null;
             }
         };

@@ -8,13 +8,12 @@
 
 package org.aeonbits.owner;
 
-import org.aeonbits.owner.lfp.LFPUtils;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 
 import static org.aeonbits.owner.Config.DisableableFeature.PARAMETER_FORMATTING;
 import static org.aeonbits.owner.Config.DisableableFeature.VARIABLE_EXPANSION;
@@ -22,36 +21,31 @@ import static org.aeonbits.owner.Converters.SpecialValue.NULL;
 import static org.aeonbits.owner.Converters.convert;
 import static org.aeonbits.owner.PreprocessorResolver.resolvePreprocessors;
 import static org.aeonbits.owner.PropertiesMapper.key;
+import static org.aeonbits.owner.util.Util.isFeatureDisabled;
 import static org.aeonbits.owner.util.Reflection.invokeDefaultMethod;
 import static org.aeonbits.owner.util.Reflection.isDefault;
-import static org.aeonbits.owner.util.Util.isFeatureDisabled;
-
 
 /**
- * This {@link InvocationHandler} receives method calls from the delegate
- * instantiated by {@link ConfigFactory} and maps it to a property value from a
- * property file, or a {@link Config.DefaultValue} specified in method
- * annotation.
+ * This {@link InvocationHandler} receives method calls from the delegate instantiated by {@link ConfigFactory} and maps
+ * it to a property value from a property file, or a {@link Config.DefaultValue} specified in method annotation.
  * <p>
- * The {@link Config.Key} annotation can be used to override default mapping
- * between method names and property names.
+ * The {@link Config.Key} annotation can be used to override default mapping between method names and property names.
  * </p>
  * <p>
- * Automatic conversion is handled between the property value and the return
- * type expected by the method of the delegate.
+ * Automatic conversion is handled between the property value and the return type expected by the method of the
+ * delegate.
  * </p>
  *
  * @author Luigi R. Viggiano
  */
 class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 
-
 	private static final long serialVersionUID = 5432212884255718342L;
 	private transient List<DelegateMethodHandle> delegates;
-    private final Map<Map.Entry<Class<?>, Method>, Map.Entry<Method, Void>> defaultMethodCache = new HashMap<Map.Entry<Class<?>, Method>, Map.Entry<Method, Void>>();
-    private final Object jmxSupport;
+	private final Object jmxSupport;
 	private final StrSubstitutor substitutor;
 	final PropertiesManager propertiesManager;
+
 
 	PropertiesInvocationHandler(PropertiesManager manager, Object jmxSupport) {
 		this.propertiesManager = manager;
@@ -65,21 +59,8 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 
 		if (isDefault(invokedMethod))
 			return invokeDefaultMethod(proxy, invokedMethod, args);
+		JAVA_8_SUPPORT
 
-        if(proxy!=null) {
-            AbstractMap.SimpleEntry<Class<?>, Method> key = new AbstractMap.SimpleEntry<Class<?>, Method>(proxy.getClass(), invokedMethod);
-            Map.Entry<Method, Void> entry = defaultMethodCache.get(key);
-            if (entry == null)
-                synchronized (defaultMethodCache) {
-                    entry = defaultMethodCache.get(key);
-                    if (entry == null) {
-                        entry=new AbstractMap.SimpleEntry<Method, Void>(lookupDefaultMethod(proxy,invokedMethod),null);
-                        defaultMethodCache.put(key, entry);
-                    }
-                }
-            if(entry.getKey()!=null)
-                return invokeDefaultMethod(proxy, entry.getKey(), args);
-        }
 
 		DelegateMethodHandle delegate = getDelegateMethod(invokedMethod);
 		if (delegate != null)
@@ -88,39 +69,7 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 		return resolveProperty(invokedMethod, args);
 	}
 
-    private Method lookupDefaultMethod(Object proxy, Method invokedMethod) {
-        Set<Class<?>> classes = new LinkedHashSet<Class<?>>();
-        classes.add(proxy.getClass());
-        classes.addAll(Arrays.asList(LFPUtils.getInterfaces(proxy.getClass())));
-        Class<?>[] invokedMethodPTs=invokedMethod.getParameterTypes();
-        for(Class<?> classType:classes) {
-            Method[] methods = classType.getMethods();
-            for (Method method : methods) {
-                if (!isDefault(method))
-                    continue;
-                if (!invokedMethod.getName().equals(method.getName()))
-                    continue;
-                if(!invokedMethod.getReturnType().isAssignableFrom(method.getReturnType()))
-                    continue;
-                Class<?>[] methodPTs=method.getParameterTypes();
-                if(invokedMethodPTs.length!=methodPTs.length)
-                    continue;
-                boolean ptMatch=true;
-                for(int i=0;ptMatch&&i<invokedMethodPTs.length;i++){
-                    Class<?> invokedMethodPT = invokedMethodPTs[i];
-                    Class<?> methodPT = methodPTs[i];
-                    if(!invokedMethodPT.isAssignableFrom(methodPT))
-                        ptMatch=false;
-                }
-                if(!ptMatch)
-                    continue;
-                return method;
-            }
-        }
-        return null;
-    }
-
-    private DelegateMethodHandle getDelegateMethod(Method invokedMethod) {
+	private DelegateMethodHandle getDelegateMethod(Method invokedMethod) {
 		for (DelegateMethodHandle delegate : delegates)
 			if (delegate.matches(invokedMethod))
 				return delegate;
@@ -140,9 +89,10 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 			return null;
 		value = preProcess(method, value);
 		Object result = convert(method, method.getReturnType(),
-				format(method, propertiesManager.decryptIfNecessary(method, expandVariables(method, value)), args));
-		if (result == NULL)
-			return null;
+				format(method, propertiesManager
+								.decryptIfNecessary(method, expandVariables(method, value)),
+						args));
+		if (result == NULL) return null;
 		return result;
 	}
 
@@ -166,19 +116,17 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 			return format;
 
 		// If there are no arguments to format, we can just return.
-		// This is also helpful when the {@code format} is a property value that
-		// contains a '%' character,
-		// such as '@#$%^&*()" (e.g., a clear-text password). In such cases, the '%'
-		// character is not
-		// a placeholder in a format string -- its just a random character in the
-		// property value.
-		if (args == null || args.length == 0)
+		// This is also helpful when the {@code format} is a property value that contains a '%' character,
+		// such as '@#$%^&*()" (e.g., a clear-text password). In such cases, the '%' character is not
+		// a placeholder in a format string -- its just a random character in the property value.
+		if ( args == null || args.length == 0 )
 			return format;
 
 		try {
 			// Do this to achieve property expansion
 			return String.format(format, args);
-		} catch (Exception e) {
+		}
+		catch ( Exception e ) {
 			// There's no guarantee that a property value from a config file
 			// is a legal format string. When formatting doesn't work, let's
 			// just return the original property value.
@@ -192,24 +140,25 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 		return substitutor.replace(value);
 	}
 
-    private List<DelegateMethodHandle> findDelegates(Object... targets) {
-        List<DelegateMethodHandle> result = new LinkedList<DelegateMethodHandle>();
-        for (Object target : targets) {
-            if (target == null)
-                continue;
-            Method[] methods = target.getClass().getMethods();
-            for (Method m : methods)
-                if (m.getAnnotation(Delegate.class) != null)
-                    result.add(new DelegateMethodHandle(target, m));
-        }
-        return result;
-    }
+	private List<DelegateMethodHandle> findDelegates(Object... targets) {
+		List<DelegateMethodHandle> result = new LinkedList<DelegateMethodHandle>();
+		for (Object target : targets) {
+			if (target == null)
+				continue;
+			Method[] methods = target.getClass().getMethods();
+			for (Method m : methods)
+				if (m.getAnnotation(Delegate.class) != null)
+					result.add(new DelegateMethodHandle(target, m));
+		}
+		return result;
+	}
 
 	public <T extends Config> void setProxy(T proxy) {
 		propertiesManager.setProxy(proxy);
 	}
 
-	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+	private void readObject(java.io.ObjectInputStream in)
+			throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
 		delegates = findDelegates(propertiesManager, jmxSupport);
 	}

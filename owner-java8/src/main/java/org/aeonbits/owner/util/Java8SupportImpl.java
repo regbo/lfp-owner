@@ -14,6 +14,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
 
 /**
  * @author Luigi R. Viggiano
@@ -48,6 +49,22 @@ class Java8SupportImpl implements Reflection.Java8Support {
                     .bindTo(proxy)
                     .invokeWithArguments(args);
         }
+    }
+
+    @Override
+    public Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) {
+        if (method.isDefault())
+            return () -> {
+                try {
+                    return invokeDefaultMethod(proxy, method, args);
+                } catch (Throwable throwable) {
+                    if (throwable instanceof Exception)
+                        throw (Exception) throwable;
+                    throw new Exception(throwable);
+                }
+            };
+
+        return null;
     }
 
     private static class Lookup {
