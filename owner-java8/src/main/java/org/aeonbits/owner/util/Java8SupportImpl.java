@@ -19,6 +19,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -66,13 +67,14 @@ class Java8SupportImpl implements Reflection.Java8Support {
 
     @Override
     public Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
-        Invoker invoker = defaultMethodLookupCache.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method)).get();
-        return invoker.invoke(proxy, args);
+        return getDefaultMethodInvoker(proxy, method, args).call();
     }
 
     @Override
     public Callable<Object> getDefaultMethodInvoker(Object proxy, Method method, Object[] args) {
         if (proxy == null || method == null)
+            return null;
+        if (!method.isDefault() && !Modifier.isAbstract(method.getModifiers()))
             return null;
         Optional<Invoker> invokerOp = defaultMethodLookupCache.get(new AbstractMap.SimpleEntry<>(proxy.getClass(), method));
         if (!invokerOp.isPresent())
