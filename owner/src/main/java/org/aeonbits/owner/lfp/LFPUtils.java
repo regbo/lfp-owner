@@ -7,7 +7,7 @@ import org.apache.commons.lang3.ClassUtils;
 
 public class LFPUtils {
 
-	public static Class<?>[] getInterfaces(Class<? extends Config> clazz) {
+	public static Class<?>[] getInterfaces(Class<?> clazz) {
 		if (clazz == null)
 			return null;
 		List<Class<?>> ifaces = ClassUtils.getAllInterfaces(clazz);

@@ -8,13 +8,13 @@
 
 package org.aeonbits.owner;
 
+import org.aeonbits.owner.lfp.LFPUtils;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.LinkedList;
-import java.util.List;
-import org.aeonbits.owner.lfp.LFPUtils;
+import java.util.*;
 
 import static org.aeonbits.owner.Config.DisableableFeature.PARAMETER_FORMATTING;
 import static org.aeonbits.owner.Config.DisableableFeature.VARIABLE_EXPANSION;
@@ -146,11 +146,11 @@ class PropertiesInvocationHandler implements InvocationHandler, Serializable {
 
 	private List<DelegateMethodHandle> findDelegates(Object... targets) {
 		List<DelegateMethodHandle> result = new LinkedList<DelegateMethodHandle>();
-        Set<Method> uniqueTracker = new HashSet<>();
+        Set<Method> uniqueTracker = new HashSet<Method>();
         for (Object target : targets) {
             if (target == null)
                 continue;
-            Set<Class<?>> targetClassTypes = new LinkedHashSet<>();
+            Set<Class<?>> targetClassTypes = new LinkedHashSet<Class<?>>();
             targetClassTypes.add(target.getClass());
             for (Class<?> ct : LFPUtils.getInterfaces(target.getClass())) {
                 targetClassTypes.add(ct);
