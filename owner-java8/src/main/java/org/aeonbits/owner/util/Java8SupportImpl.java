@@ -29,7 +29,10 @@ import org.aeonbits.owner.lfp.LFPUtils;
  */
 class Java8SupportImpl implements Reflection.Java8Support {
     private LoadingCache<Map.Entry<Class<?>, Optional<Method>>, Method> DEFAULT_METHOD_LOOKUP_CACHE = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofSeconds(10)).expireAfterAccess(Duration.ofSeconds(1)).build(ent ->Optional.of(LFPUtils.lookupDefaultMethod(ent.getKey(), ent.getValue())));
+            .expireAfterWrite(Duration.ofSeconds(10)).expireAfterAccess(Duration.ofSeconds(1)).build(ent -> {
+                Method method = LFPUtils.lookupDefaultMethod(ent.getKey(), ent.getValue());
+                return Optional.ofNullable(method);
+            });
     private boolean isJava8;
 
     Java8SupportImpl() {
