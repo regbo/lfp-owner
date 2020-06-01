@@ -115,9 +115,14 @@ class PropertiesManager implements Reloadable, Accessible, Mutable {
 		ConfigURIFactory urlFactory = new ConfigURIFactory(clazz.getClassLoader(), expander);
 		uris = toURIs(clazz.getAnnotation(Sources.class), urlFactory);
 
-		for (Class<?> inter : LFPUtils.getInterfaces(clazz)) {
-			this.uris.addAll(toURIs(inter.getAnnotation(Sources.class), urlFactory));
+		{
+			for (Class<?> inter : LFPUtils.getInterfaces(clazz))
+				this.uris.addAll(toURIs(inter.getAnnotation(Sources.class), urlFactory));
+			java.util.LinkedHashSet<URI> uriSet = new java.util.LinkedHashSet<URI>(this.uris);
+			this.uris.clear();
+			this.uris.addAll(uriSet);
 		}
+		
 
 		LoadPolicy loadPolicy = clazz.getAnnotation(LoadPolicy.class);
 		if (loadPolicy == null) {

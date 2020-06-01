@@ -30,7 +30,7 @@ import org.aeonbits.owner.loaders.Loader;
  */
 class DefaultFactory implements Factory {
 
-	private static final boolean isJMXAvailable = isClassAvailable("javax.management.DynamicMBean");
+	private static final boolean isJMXAvailable = false;
 	private final ScheduledExecutorService scheduler;
 	private Properties props;
 	final LoadersManager loadersManager;
